@@ -6,6 +6,11 @@ import mongoose from 'mongoose';
  */
 const userSchema = new mongoose.Schema(
   {
+    name: {
+      type: String,
+      required: true,
+      trim: true,
+    },
     email: {
       type: String,
       unique: true,
@@ -17,7 +22,17 @@ const userSchema = new mongoose.Schema(
     },
     role: {
       type: String,
-      default: 'user',
+      enum: ['student', 'tutor'],
+      default: 'student',
+    },
+    name: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    subjectTags: {
+      type: [String],
+      default: [],
     },
   },
   { timestamps: true }
