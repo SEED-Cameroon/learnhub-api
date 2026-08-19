@@ -25,10 +25,14 @@ const userSchema = new mongoose.Schema(
       enum: ['student', 'tutor'],
       default: 'student',
     },
-    name: {
+    avatarUrl: {
       type: String,
-      required: true,
-      trim: true,
+      default: ""
+    },
+     bio: {
+      type: String,
+      default: "",
+      maxlength: 500
     },
     subjectTags: {
       type: [String],
