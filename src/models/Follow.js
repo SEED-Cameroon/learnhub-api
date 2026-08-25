@@ -8,7 +8,7 @@ const followSchema = new mongoose.Schema(
       required: true,
     },
 
-    tutor: {
+    following: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: true,
