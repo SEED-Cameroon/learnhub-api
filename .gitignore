@@ -7,3 +7,4 @@ build/
 *.log
 .DS_Store
 coverage/
+.env.example
