@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: learnhub-api
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: MONGO_URI
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: CORS_ORIGIN
+        sync: false
