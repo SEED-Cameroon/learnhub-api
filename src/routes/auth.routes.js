@@ -88,6 +88,39 @@ router.post('/register', register);
  *     responses:
  *       200:
  *         description: User logged in successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     user:
+ *                       type: object
+ *                       properties:
+ *                         id:
+ *                           type: string
+ *                           example: 64f123456789abcdef123456
+ *                         name:
+ *                           type: string
+ *                           example: John Doe
+ *                         email:
+ *                           type: string
+ *                           example: john@example.com
+ *                         role:
+ *                           type: string
+ *                           example: student
+ *                     token:
+ *                       type: string
+ *                       description: JWT bearer token, valid for 15 minutes. Paste this into the Authorize button above.
+ *                       example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+ *                 message:
+ *                   type: string
+ *                   example: Login successful
  *       401:
  *         description: Invalid credentials
  */
