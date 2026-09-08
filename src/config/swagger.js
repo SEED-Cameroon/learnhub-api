@@ -23,7 +23,7 @@ const options = {
         "On errors, `data` is omitted and `message` explains what went wrong.",
         "",
         "## Endpoint groups",
-        "See the tag sections below: **Authentication**, **Courses**, **Likes**, **Comments**, **Follows**, **Subscriptions**, **Tutors**, **Health**.",
+        "See the tag sections below: **Health**, **Authentication**, **Courses**, **Course Likes**, **Comments**, **Follows**, **Subscriptions**, **Tutors**.",
       ].join("\n"),
     },
     servers: [
@@ -46,7 +46,19 @@ const options = {
     },
   },
 
-  apis: ["./src/routes/*.js", "./src/controllers/*.js"],
+  // Order here drives the tag/section order in Swagger UI: Health and
+  // Authentication first, then the rest of the resource routes.
+  apis: [
+    "./src/routes/health.routes.js",
+    "./src/routes/auth.routes.js",
+    "./src/routes/course.routes.js",
+    "./src/routes/Likes.routes.js",
+    "./src/routes/comment.routes.js",
+    "./src/routes/follow.routes.js",
+    "./src/routes/subscription.routes.js",
+    "./src/routes/Tutor.routes.js",
+    "./src/controllers/*.js",
+  ],
 };
 
 const swaggerSpec = swaggerJsdoc(options);
