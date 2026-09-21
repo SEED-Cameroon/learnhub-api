@@ -1,3 +1,4 @@
+```js
 import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
@@ -14,11 +15,20 @@ import commentRoutes from "./src/routes/comment.routes.js";
 import auth from "./src/middleware/auth.js";
 import followRoutes from "./src/routes/follow.routes.js";
 import subscriptionRoutes from "./src/routes/subscription.routes.js";
-import tutorRoutes from "./src/routes/Tutor.routes.js"; 
+import tutorRoutes from "./src/routes/Tutor.routes.js";
 
 const app = express();
 
-app.use(cors({ origin: process.env.CORS_ORIGIN }));
+app.use(
+  cors({
+    origin: [
+      "http://localhost:5173",
+      "http://localhost:5175",
+      process.env.CORS_ORIGIN,
+    ].filter(Boolean),
+  })
+);
+
 app.use(express.json());
 
 app.use('/api/health', healthRoutes);
@@ -44,3 +54,4 @@ const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`LearnHub API listening on port ${PORT}`);
 });
+```
