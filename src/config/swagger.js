@@ -51,6 +51,7 @@ const options = {
   apis: [
     "./src/routes/health.routes.js",
     "./src/routes/auth.routes.js",
+    "./src/routes/me.routes.js",
     "./src/routes/course.routes.js",
     "./src/routes/Likes.routes.js",
     "./src/routes/comment.routes.js",

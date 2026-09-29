@@ -33,6 +33,9 @@ export async function createComment(req, res, next) {
       $inc: { commentsCount: 1 },
     });
 
+    // Return the author with the comment so clients can show it straight away.
+    await comment.populate("user", "name avatarUrl");
+
     return res.status(201).json({
       success: true,
       data: {

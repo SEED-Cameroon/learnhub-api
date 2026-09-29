@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import Follow from '../models/Follow.js';
 
 /**
  * Connects to MongoDB using the MONGO_URI environment variable.
@@ -12,6 +13,9 @@ export async function connectDB() {
   try {
     await mongoose.connect(process.env.MONGO_URI);
     console.log('MongoDB connected successfully');
+    // Drops the old follower+tutor index left on existing databases and
+    // builds the corrected follower+following one.
+    await Follow.syncIndexes();
   } catch (err) {
     console.error('MongoDB connection error:', err.message);
   }

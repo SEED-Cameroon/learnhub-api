@@ -14,15 +14,28 @@ import commentRoutes from "./src/routes/comment.routes.js";
 import auth from "./src/middleware/auth.js";
 import followRoutes from "./src/routes/follow.routes.js";
 import subscriptionRoutes from "./src/routes/subscription.routes.js";
-import tutorRoutes from "./src/routes/Tutor.routes.js"; 
+import tutorRoutes from "./src/routes/Tutor.routes.js";
+import meRoutes from "./src/routes/me.routes.js";
 
 const app = express();
 
-app.use(cors({ origin: process.env.CORS_ORIGIN }));
+// CORS_ORIGIN may list several origins separated by commas, e.g.
+// "https://learnhub.vercel.app,https://www.learnhub.cm". Outside production
+// the Vite dev server origins are allowed too.
+const allowedOrigins = (process.env.CORS_ORIGIN || '')
+  .split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+if (process.env.NODE_ENV !== 'production') {
+  allowedOrigins.push('http://localhost:5173', 'http://localhost:4173');
+}
+
+app.use(cors({ origin: allowedOrigins }));
 app.use(express.json());
 
 app.use('/api/health', healthRoutes);
 app.use('/api/auth', authRoutes);
+app.use('/api/me', meRoutes);
 app.use("/api/courses", courseRoutes);
 app.use("/api/likes", likeRoutes);
 app.use("/api/courses", commentRoutes);

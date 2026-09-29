@@ -6,10 +6,12 @@ import {
   getCourse,
   updateCourse,
   deleteCourse,
+  listMyCourses,
 } from "../controllers/course.controller.js";
 
 import auth from "../middleware/auth.js";
 import requireRole from "../middleware/role.js";
+import optionalAuth from "../middleware/optionalAuth.js";
 
 const router = express.Router();
 
@@ -35,6 +37,23 @@ const router = express.Router();
  *           type: string
  *         description: Filter courses by category
  *         example: Mathematics
+ *
+ *       - in: query
+ *         name: q
+ *         required: false
+ *         schema:
+ *           type: string
+ *         description: Case-insensitive search in the title and category
+ *         example: calculus
+ *
+ *       - in: query
+ *         name: sort
+ *         required: false
+ *         schema:
+ *           type: string
+ *           enum: [newest, liked]
+ *           default: newest
+ *         description: Newest first, or most liked first
  *
  *       - in: query
  *         name: page
@@ -135,6 +154,25 @@ router.get("/", listCourses);
 
 /**
  * @swagger
+ * /api/courses/mine:
+ *   get:
+ *     summary: List the signed-in tutor's own courses, drafts included
+ *     tags: [Courses]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: The tutor's courses, most recently updated first
+ *       401:
+ *         description: Not authorized
+ *       403:
+ *         description: Only tutors can list their courses
+ */
+// Must stay above "/:id" so "mine" isn't read as a course id.
+router.get("/mine", auth, requireRole("tutor"), listMyCourses);
+
+/**
+ * @swagger
  * /api/courses/{id}:
  *   get:
  *     summary: Get a published course
@@ -186,7 +224,7 @@ router.get("/", listCourses);
  *       500:
  *         description: Server error
  */
-router.get("/:id", getCourse);
+router.get("/:id", optionalAuth, getCourse);
 
 /**
  * @swagger

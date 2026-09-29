@@ -95,7 +95,7 @@ export async function login(req, res, next) {
       process.env.JWT_SECRET,
       {
         algorithm: 'HS256',
-        expiresIn: '15m',
+        expiresIn: process.env.JWT_EXPIRES_IN || '15m',
       }
     );
 
