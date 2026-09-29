@@ -46,6 +46,7 @@ export async function register(req, res, next) {
           name: user.name,
           email: user.email,
           role: user.role,
+          avatarUrl: user.avatarUrl,
         },
       },
       message: 'Account created successfully',
@@ -95,7 +96,7 @@ export async function login(req, res, next) {
       process.env.JWT_SECRET,
       {
         algorithm: 'HS256',
-        expiresIn: '15m',
+        expiresIn: process.env.JWT_EXPIRES_IN || '15m',
       }
     );
 
@@ -107,6 +108,7 @@ export async function login(req, res, next) {
           name: user.name,
           email: user.email,
           role: user.role,
+          avatarUrl: user.avatarUrl,
         },
         token,
       },

@@ -1,5 +1,6 @@
 import Subscription from "../models/Subscription.js";
 import User from "../models/User.js";
+import { PAYMENTS_MODE, requestPayment } from "../services/payments.js";
 
 export async function createSubscription(req, res, next) {
   try {
@@ -10,6 +11,28 @@ export async function createSubscription(req, res, next) {
       return res.status(400).json({
         success: false,
         message: "tutorId, amount, provider, and phoneNumber are required",
+      });
+    }
+
+    if (!Number.isInteger(amount) || amount < 100) {
+      return res.status(400).json({
+        success: false,
+        message: "amount must be a whole number of at least 100 XAF",
+      });
+    }
+
+    if (!["mtn", "orange"].includes(provider)) {
+      return res.status(400).json({
+        success: false,
+        message: "provider must be mtn or orange",
+      });
+    }
+
+    // Cameroon mobile numbers: 6 followed by 8 digits, with an optional +237.
+    if (!/^(\+?237)?6\d{8}$/.test(String(phoneNumber).replace(/\s/g, ""))) {
+      return res.status(400).json({
+        success: false,
+        message: "phoneNumber must be a Cameroon mobile number like +237 6XX XXX XXX",
       });
     }
 
@@ -48,7 +71,12 @@ export async function createSubscription(req, res, next) {
       amount,
       provider,
       phoneNumber,
+      paymentMode: PAYMENTS_MODE,
     });
+
+    // Sends the Mobile Money prompt (or, in test mode, confirms it shortly).
+    // The subscription stays pending until the payment is settled.
+    await requestPayment(subscription);
 
     return res.status(201).json({
       success: true,

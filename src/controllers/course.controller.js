@@ -1,8 +1,18 @@
 import Course from "../models/Course.js";
+import Like from "../models/Like.js";
+import Comment from "../models/Comment.js";
+
+const SORTS = {
+  newest: { createdAt: -1 },
+  liked: { likesCount: -1, createdAt: -1 },
+};
+
+// Escapes user text before it is used inside a search RegExp.
+const escapeRegex = (text) => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 export async function createCourse(req, res, next) {
   try {
-    const { title, description, category, price, thumbnailUrl, previewVideoUrl } =
+    const { title, description, category, price, thumbnailUrl, previewVideoUrl, status, level, outcomes, lessons } =
       req.body;
     if (!title || !description || !category || price === undefined) {
       return res.status(400).json({
@@ -18,7 +28,11 @@ export async function createCourse(req, res, next) {
       price,
       thumbnailUrl,
       previewVideoUrl,
-      status: "draft",
+      level,
+      outcomes,
+      lessons,
+      // Tutors can publish straight away or save a draft; anything else is a draft.
+      status: status === "published" ? "published" : "draft",
     });
     return res.status(201).json({
       success: true,
@@ -33,7 +47,7 @@ export async function createCourse(req, res, next) {
 }
 export async function listCourses(req, res, next) {
   try {
-    const { category } = req.query;
+    const { category, q, sort } = req.query;
     const page = Math.max(Number(req.query.page) || 1, 1);
     const limit = Math.min(
       Math.max(Number(req.query.limit) || 10, 1),
@@ -45,11 +59,17 @@ export async function listCourses(req, res, next) {
     if (category) {
       filter.category = category.trim();
     }
+
+    if (q && q.trim()) {
+      const pattern = new RegExp(escapeRegex(q.trim().slice(0, 100)), "i");
+      filter.$or = [{ title: pattern }, { category: pattern }];
+    }
     const skip = (page - 1) * limit;
     const [courses, total] = await Promise.all([
       Course.find(filter)
         .populate("tutor", "name avatarUrl")
-        .sort({ createdAt: -1 })
+        .select("-lessons.summary -lessons.videoUrl -lessons.videoCredit")
+        .sort(SORTS[sort] || SORTS.newest)
         .skip(skip)
         .limit(limit),
       Course.countDocuments(filter),
@@ -74,20 +94,34 @@ export async function listCourses(req, res, next) {
 export async function getCourse(req, res, next) {
   try {
     const { id } = req.params;
-    const course = await Course.findOne({
-      _id: id,
-      status: "published",
-    }).populate("tutor", "name avatarUrl");
-    if (!course) {
+    const viewerId = req.user?.sub;
+
+    const course = await Course.findById(id).populate("tutor", "name avatarUrl");
+
+    // Drafts are only visible to the tutor who owns them.
+    const isOwner = viewerId && course && course.tutor?._id.toString() === viewerId;
+    if (!course || (course.status !== "published" && !isOwner)) {
       return res.status(404).json({
         success: false,
         message: "Course not found",
       });
     }
+
+    if (!isOwner) {
+      // Fire-and-forget: a failed view count must not fail the page.
+      Course.updateOne({ _id: course._id }, { $inc: { viewsCount: 1 } }).catch(() => {});
+      course.viewsCount += 1;
+    }
+
+    const likedByMe = viewerId
+      ? Boolean(await Like.exists({ course: id, user: viewerId }))
+      : false;
+
     return res.status(200).json({
       success: true,
       data: {
         course,
+        likedByMe,
       },
       message: "Course retrieved successfully",
     });
@@ -95,6 +129,26 @@ export async function getCourse(req, res, next) {
     next(error);
   }
 }
+
+/**
+ * GET /api/courses/mine — every course the signed-in tutor owns, drafts included.
+ */
+export async function listMyCourses(req, res, next) {
+  try {
+    const courses = await Course.find({ tutor: req.user.sub }).sort({ updatedAt: -1 });
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        courses,
+      },
+      message: "Courses retrieved successfully",
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
 export async function updateCourse(req, res, next) {
   try {
     const { id } = req.params;
@@ -106,6 +160,9 @@ export async function updateCourse(req, res, next) {
       thumbnailUrl,
       previewVideoUrl,
       status,
+      level,
+      outcomes,
+      lessons,
     } = req.body;
     const course = await Course.findOne({
       _id: id,
@@ -125,6 +182,10 @@ export async function updateCourse(req, res, next) {
     if (previewVideoUrl !== undefined) {
       course.previewVideoUrl = previewVideoUrl;
     }
+    if (level !== undefined) course.level = level;
+    if (outcomes !== undefined) course.outcomes = outcomes;
+    // The outline is replaced as a whole; lessons keep their _id when sent back.
+    if (lessons !== undefined) course.lessons = lessons;
     if (status !== undefined) {
       if (!["draft", "published"].includes(status)) {
         return res.status(400).json({
@@ -159,7 +220,11 @@ export async function deleteCourse(req, res, next) {
         message: "Course not found",
       });
     }
-    await course.deleteOne();
+    await Promise.all([
+      course.deleteOne(),
+      Like.deleteMany({ course: id }),
+      Comment.deleteMany({ course: id }),
+    ]);
     return res.status(200).json({
       success: true,
       data: null,

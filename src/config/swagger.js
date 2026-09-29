@@ -51,12 +51,15 @@ const options = {
   apis: [
     "./src/routes/health.routes.js",
     "./src/routes/auth.routes.js",
+    "./src/routes/me.routes.js",
     "./src/routes/course.routes.js",
     "./src/routes/Likes.routes.js",
     "./src/routes/comment.routes.js",
     "./src/routes/follow.routes.js",
     "./src/routes/subscription.routes.js",
     "./src/routes/Tutor.routes.js",
+    "./src/routes/payment.routes.js",
+    "./src/routes/upload.routes.js",
     "./src/controllers/*.js",
   ],
 };

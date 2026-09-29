@@ -34,6 +34,24 @@ const userSchema = new mongoose.Schema(
       default: "",
       maxlength: 500
     },
+    // Wide image across the top of the public tutor profile.
+    bannerUrl: {
+      type: String,
+      default: "",
+    },
+    // Shown on the public tutor profile, e.g. "Advanced Mathematics".
+    headline: {
+      type: String,
+      default: "",
+      trim: true,
+      maxlength: 80,
+    },
+    city: {
+      type: String,
+      default: "",
+      trim: true,
+      maxlength: 60,
+    },
     subjectTags: {
       type: [String],
       default: [],

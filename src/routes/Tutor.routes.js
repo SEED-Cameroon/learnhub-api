@@ -4,9 +4,13 @@ import {
   listTutors,
   getTutor,
   updateTutor,
+  getMyStats,
+  getMyEarnings,
 } from "../controllers/tutor.controller.js";
 
 import { auth } from "../middleware/auth.js";
+import requireRole from "../middleware/role.js";
+import optionalAuth from "../middleware/optionalAuth.js";
 
 const router = express.Router();
 
@@ -75,6 +79,45 @@ const router = express.Router();
  *         description: Server error
  */
 router.get("/", listTutors);
+
+/**
+ * @swagger
+ * /api/tutors/me/stats:
+ *   get:
+ *     summary: Totals for the signed-in tutor's studio overview
+ *     description: Courses, likes, comments, followers, and active supporters with their monthly total in XAF.
+ *     tags: [Tutors]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Tutor stats
+ *       401:
+ *         description: Not authorized
+ *       403:
+ *         description: Only tutors have stats
+ */
+// Must stay above "/:id" so "me" isn't read as a tutor id.
+router.get("/me/stats", auth, requireRole("tutor"), getMyStats);
+
+/**
+ * @swagger
+ * /api/tutors/me/earnings:
+ *   get:
+ *     summary: The signed-in tutor's earnings, supporters and recent payments
+ *     description: thisMonthXaf and lastMonthXaf sum successful payments. Payments made while PAYMENTS_MODE=test have mode "test" and move no real money.
+ *     tags: [Tutors]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Earnings
+ *       401:
+ *         description: Not authorized
+ *       403:
+ *         description: Only tutors have earnings
+ */
+router.get("/me/earnings", auth, requireRole("tutor"), getMyEarnings);
 
 /**
  * @swagger
@@ -164,7 +207,7 @@ router.get("/", listTutors);
  *       500:
  *         description: Server error
  */
-router.get("/:id", getTutor);
+router.get("/:id", optionalAuth, getTutor);
 
 /**
  * @swagger
