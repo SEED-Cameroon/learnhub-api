@@ -3,8 +3,9 @@ import User from "../models/User.js";
 import Course from "../models/Course.js";
 import Follow from "../models/Follow.js";
 import Subscription from "../models/Subscription.js";
+import Payment from "../models/Payment.js";
 
-const PUBLIC_FIELDS = "name avatarUrl bio subjectTags headline city";
+const PUBLIC_FIELDS = "name avatarUrl bannerUrl bio subjectTags headline city";
 
 /**
  * Adds followersCount and coursesCount (published) to a list of tutors,
@@ -78,7 +79,7 @@ export async function getTutor(req, res, next) {
       status: "published",
     })
       .select(
-        "title description category price thumbnailUrl previewVideoUrl status likesCount commentsCount createdAt"
+        "title description category price thumbnailUrl previewVideoUrl status likesCount commentsCount viewsCount createdAt"
       )
       .sort({ createdAt: -1 });
 
@@ -135,6 +136,7 @@ export async function updateTutor(req, res, next) {
       subjectTags,
       headline,
       city,
+      bannerUrl,
     } = req.body;
 
     if (name !== undefined) tutor.name = name;
@@ -143,6 +145,7 @@ export async function updateTutor(req, res, next) {
     if (subjectTags !== undefined) tutor.subjectTags = subjectTags;
     if (headline !== undefined) tutor.headline = headline;
     if (city !== undefined) tutor.city = city;
+    if (bannerUrl !== undefined) tutor.bannerUrl = bannerUrl;
 
     await tutor.save();
 
@@ -158,6 +161,7 @@ export async function updateTutor(req, res, next) {
           subjectTags: tutor.subjectTags,
           headline: tutor.headline,
           city: tutor.city,
+          bannerUrl: tutor.bannerUrl,
         },
       },
       message: "Tutor profile updated successfully",
@@ -174,7 +178,7 @@ export async function updateTutor(req, res, next) {
 export async function getMyStats(req, res, next) {
   try {
     const tutorId = req.user.sub;
-    const courses = await Course.find({ tutor: tutorId }).select("status likesCount commentsCount");
+    const courses = await Course.find({ tutor: tutorId }).select("status likesCount commentsCount viewsCount");
 
     const [followers, support] = await Promise.all([
       Follow.countDocuments({ following: tutorId }),
@@ -193,12 +197,79 @@ export async function getMyStats(req, res, next) {
           published: courses.filter((c) => c.status === "published").length,
           likes: courses.reduce((sum, c) => sum + c.likesCount, 0),
           comments: courses.reduce((sum, c) => sum + c.commentsCount, 0),
+          views: courses.reduce((sum, c) => sum + (c.viewsCount || 0), 0),
           followers,
           activeSupporters: support[0]?.supporters || 0,
           monthlySupportXaf: support[0]?.amount || 0,
         },
       },
       message: "Tutor stats retrieved successfully",
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+/**
+ * GET /api/tutors/me/earnings — money the signed-in tutor has received:
+ * this month vs last month (successful payments), active supporters, and
+ * the most recent payments. Test-mode payments are included and flagged.
+ */
+export async function getMyEarnings(req, res, next) {
+  try {
+    const tutor = new mongoose.Types.ObjectId(req.user.sub);
+    const now = new Date();
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+
+    const sumBetween = async (from, to) => {
+      const [row] = await Payment.aggregate([
+        { $match: { tutor, status: "successful", paidAt: { $gte: from, $lt: to } } },
+        { $group: { _id: null, total: { $sum: "$amount" } } },
+      ]);
+      return row?.total || 0;
+    };
+
+    const [thisMonthXaf, lastMonthXaf, supporters, payments] = await Promise.all([
+      sumBetween(monthStart, now),
+      sumBetween(lastMonthStart, monthStart),
+      Subscription.find({ tutor, status: "active" })
+        .populate("student", "name avatarUrl")
+        .sort({ startedAt: -1 })
+        .limit(100),
+      Payment.find({ tutor })
+        .populate("student", "name avatarUrl")
+        .sort({ createdAt: -1 })
+        .limit(50),
+    ]);
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        thisMonthXaf,
+        lastMonthXaf,
+        activeSupporters: supporters.length,
+        monthlySupportXaf: supporters.reduce((sum, s) => sum + s.amount, 0),
+        supporters: supporters.map((s) => ({
+          id: s._id,
+          student: s.student,
+          amount: s.amount,
+          provider: s.provider,
+          since: s.startedAt,
+          paymentMode: s.paymentMode,
+        })),
+        payments: payments.map((p) => ({
+          id: p._id,
+          student: p.student,
+          amount: p.amount,
+          provider: p.provider,
+          status: p.status,
+          mode: p.mode,
+          paidAt: p.paidAt,
+          createdAt: p.createdAt,
+        })),
+      },
+      message: "Earnings retrieved successfully",
     });
   } catch (error) {
     next(error);

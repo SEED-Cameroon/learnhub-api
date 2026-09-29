@@ -58,6 +58,8 @@ const options = {
     "./src/routes/follow.routes.js",
     "./src/routes/subscription.routes.js",
     "./src/routes/Tutor.routes.js",
+    "./src/routes/payment.routes.js",
+    "./src/routes/upload.routes.js",
     "./src/controllers/*.js",
   ],
 };

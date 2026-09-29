@@ -16,6 +16,9 @@ import followRoutes from "./src/routes/follow.routes.js";
 import subscriptionRoutes from "./src/routes/subscription.routes.js";
 import tutorRoutes from "./src/routes/Tutor.routes.js";
 import meRoutes from "./src/routes/me.routes.js";
+import paymentRoutes from "./src/routes/payment.routes.js";
+import uploadRoutes from "./src/routes/upload.routes.js";
+import { settleStaleTestPayments } from "./src/services/payments.js";
 
 const app = express();
 
@@ -36,6 +39,8 @@ app.use(express.json());
 app.use('/api/health', healthRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/me', meRoutes);
+app.use('/api/payments', paymentRoutes);
+app.use('/api/uploads', uploadRoutes);
 app.use("/api/courses", courseRoutes);
 app.use("/api/likes", likeRoutes);
 app.use("/api/courses", commentRoutes);
@@ -47,7 +52,7 @@ app.use("/api-docs", swaggerUI.serve, swaggerUI.setup(swaggerSpec));
 
 // Kick off the DB connection without blocking server startup — connectDB()
 // logs its own errors and never throws.
-connectDB();
+connectDB().then(settleStaleTestPayments).catch((err) => console.error('Startup task failed:', err.message));
 
 // Centralized error handler must be the last app.use().
 app.use(errorHandler);

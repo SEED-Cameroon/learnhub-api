@@ -60,6 +60,12 @@ const courseSchema = new mongoose.Schema(
       min: 0,
     },
 
+    // Counts opens of the course page by anyone other than its tutor.
+    viewsCount: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
     commentsCount: {
       type: Number,
       default: 0,

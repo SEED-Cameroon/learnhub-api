@@ -103,6 +103,12 @@ export async function getCourse(req, res, next) {
       });
     }
 
+    if (!isOwner) {
+      // Fire-and-forget: a failed view count must not fail the page.
+      Course.updateOne({ _id: course._id }, { $inc: { viewsCount: 1 } }).catch(() => {});
+      course.viewsCount += 1;
+    }
+
     const likedByMe = viewerId
       ? Boolean(await Like.exists({ course: id, user: viewerId }))
       : false;

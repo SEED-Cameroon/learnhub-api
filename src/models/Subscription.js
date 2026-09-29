@@ -56,6 +56,12 @@ const subscriptionSchema = new mongoose.Schema(
       default: null,
     },
 
+    // "test" while no Mobile Money provider is connected; no real money moves.
+    paymentMode: {
+      type: String,
+      enum: ["test", "live"],
+      default: "test",
+    },
     cancelledAt: {
       type: Date,
       default: null,
