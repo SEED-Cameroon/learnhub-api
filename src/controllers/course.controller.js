@@ -12,7 +12,7 @@ const escapeRegex = (text) => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 export async function createCourse(req, res, next) {
   try {
-    const { title, description, category, price, thumbnailUrl, previewVideoUrl, status } =
+    const { title, description, category, price, thumbnailUrl, previewVideoUrl, status, level, outcomes, lessons } =
       req.body;
     if (!title || !description || !category || price === undefined) {
       return res.status(400).json({
@@ -28,6 +28,9 @@ export async function createCourse(req, res, next) {
       price,
       thumbnailUrl,
       previewVideoUrl,
+      level,
+      outcomes,
+      lessons,
       // Tutors can publish straight away or save a draft; anything else is a draft.
       status: status === "published" ? "published" : "draft",
     });
@@ -65,6 +68,7 @@ export async function listCourses(req, res, next) {
     const [courses, total] = await Promise.all([
       Course.find(filter)
         .populate("tutor", "name avatarUrl")
+        .select("-lessons.summary -lessons.videoUrl -lessons.videoCredit")
         .sort(SORTS[sort] || SORTS.newest)
         .skip(skip)
         .limit(limit),
@@ -156,6 +160,9 @@ export async function updateCourse(req, res, next) {
       thumbnailUrl,
       previewVideoUrl,
       status,
+      level,
+      outcomes,
+      lessons,
     } = req.body;
     const course = await Course.findOne({
       _id: id,
@@ -175,6 +182,10 @@ export async function updateCourse(req, res, next) {
     if (previewVideoUrl !== undefined) {
       course.previewVideoUrl = previewVideoUrl;
     }
+    if (level !== undefined) course.level = level;
+    if (outcomes !== undefined) course.outcomes = outcomes;
+    // The outline is replaced as a whole; lessons keep their _id when sent back.
+    if (lessons !== undefined) course.lessons = lessons;
     if (status !== undefined) {
       if (!["draft", "published"].includes(status)) {
         return res.status(400).json({
